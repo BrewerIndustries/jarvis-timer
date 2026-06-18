@@ -1,0 +1,10 @@
+{
+  "id": "jarvis-timer",
+  "name": "Jarvis Timer",
+  "category": "standalone",
+  "status": { "prod": "live", "dev": "live" },
+  "deploy": {
+    "prod": { "url": "https://jarvis-timer.dabrewer.dev/" },
+    "dev": { "url": "https://jarvis-timer.dabrewer.dev/dev/" }
+  }
+}

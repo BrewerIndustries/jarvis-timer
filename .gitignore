@@ -1,0 +1,6 @@
+# macOS
+.DS_Store
+
+# Claude Code local state — keep launch.json, ignore the rest
+.claude/*
+!.claude/launch.json
