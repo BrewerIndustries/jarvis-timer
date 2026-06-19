@@ -12,17 +12,19 @@ Part of the [Jarvis constellation](https://jarvis.dabrewer.dev/). A self-contain
 
 ## Concept
 
-> "I have **1 hour** and want to do **3 things**."
+> "I have **50 minutes** and want to do **3 things**."
 
-You name the things (optional) and tweak the per-task minutes if you don't want an
-even split. Hit start and it walks you through each task, chiming and auto-advancing
-when a segment ends.
+You name the things (optional) and tweak the per-task minutes and seconds if you don't
+want an even split. Hit start and it walks you through each task, chiming and
+auto-advancing when a segment ends.
 
 ## Features (v0.1)
 
-- **Time-box setup** — "I have *H*h *M*m and want to do *N* things"; quick presets
-  (15/25/30 min, 1h, 90m, 2h) and even-distribution across tasks.
-- **Per-task editing** — name each thing, override its minutes, add/remove rows.
+- **Time-box setup** — "I have *N* minutes and want to do *M* things"; quick presets
+  (15/25/30 min, 1h, 90m, 2h) and even-distribution across tasks, computed down to the
+  second (e.g. 50 min / 3 → 16:40 each).
+- **Per-task editing** — name each thing, override its minutes **and seconds**,
+  add/remove rows.
 - **Segment countdown** — big circular dial for the current task, plus total time
   remaining and a projected finish time.
 - **Segment strip** — see every task's progress at a glance; click to jump.

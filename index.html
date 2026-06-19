@@ -181,7 +181,7 @@
   .tasks { display: flex; flex-direction: column; gap: 10px; }
   .task-row {
     display: grid;
-    grid-template-columns: 26px 1fr 118px 32px;
+    grid-template-columns: 26px 1fr auto auto 32px;
     align-items: center; gap: 10px;
     background: var(--panel);
     border: 1px solid var(--line);
@@ -333,7 +333,9 @@
 
   @media (max-width: 540px) {
     .topbar { flex-wrap: wrap; }
-    .task-row { grid-template-columns: 22px 1fr 104px 28px; }
+    .task-row { grid-template-columns: 20px 1fr auto auto 26px; gap: 6px; }
+    .mins { padding: 4px 6px; gap: 4px; }
+    .mins input { width: 34px; }
     .wallclock .wc-date { display: none; }
   }
 </style>
@@ -367,27 +369,25 @@
     <section class="view active" id="setupView">
       <p class="lede">
         I have
-        <input class="num" id="inHours" type="number" min="0" max="24" inputmode="numeric" value="1" aria-label="hours" />
-        <span class="unit">h</span>
-        <input class="num" id="inMins" type="number" min="0" max="59" inputmode="numeric" value="0" aria-label="minutes" />
-        <span class="unit">m</span>
+        <input class="num" id="inMins" type="number" min="0" max="1440" inputmode="numeric" value="60" aria-label="total minutes" />
+        <span class="unit">minutes</span>
         and want to do
         <input class="num small" id="inCount" type="number" min="1" max="20" inputmode="numeric" value="3" aria-label="number of things" />
         <span class="unit">things.</span>
       </p>
 
       <div class="presets" id="presets">
-        <button class="preset" data-h="0" data-m="15">15 min</button>
-        <button class="preset" data-h="0" data-m="25">25 min</button>
-        <button class="preset" data-h="0" data-m="30">30 min</button>
-        <button class="preset" data-h="1" data-m="0">1 hour</button>
-        <button class="preset" data-h="1" data-m="30">90 min</button>
-        <button class="preset" data-h="2" data-m="0">2 hours</button>
+        <button class="preset" data-min="15">15 min</button>
+        <button class="preset" data-min="25">25 min</button>
+        <button class="preset" data-min="30">30 min</button>
+        <button class="preset" data-min="60">1 hour</button>
+        <button class="preset" data-min="90">90 min</button>
+        <button class="preset" data-min="120">2 hours</button>
       </div>
 
       <div class="section-head">
         <h2>Your things</h2>
-        <span class="alloc" id="alloc">planned <b>0</b> min</span>
+        <span class="alloc" id="alloc">planned <b>0:00</b></span>
       </div>
       <div class="tasks" id="taskList"></div>
       <button class="add-task" id="addTask">+ Add another thing</button>
@@ -547,20 +547,25 @@
   //  Setup
   // =========================================================
   const taskListEl = $("taskList");
-  let tasks = []; // {name, mins}
+  let tasks = []; // {name, mins, secs}
 
   function poolMins() {
-    return clamp(+$("inHours").value || 0, 0, 24) * 60 + clamp(+$("inMins").value || 0, 0, 59);
+    return clamp(Math.round(+$("inMins").value || 0), 0, 1440);
   }
-  function sumMins() { return tasks.reduce((a, t) => a + (t.mins || 0), 0); }
+  function taskSecs(t) { return (t.mins || 0) * 60 + (t.secs || 0); }
+  function sumSecs() { return tasks.reduce((a, t) => a + taskSecs(t), 0); }
 
   function distribute() {
     const n = tasks.length;
     if (!n) return;
-    const pool = poolMins();
-    const base = Math.floor(pool / n);
-    let rem = pool - base * n;
-    tasks.forEach((t, i) => { t.mins = base + (i < rem ? 1 : 0); });
+    const total = poolMins() * 60;            // split evenly down to the second
+    const base = Math.floor(total / n);
+    let rem = total - base * n;
+    tasks.forEach((t, i) => {
+      const s = base + (i < rem ? 1 : 0);
+      t.mins = Math.floor(s / 60);
+      t.secs = s % 60;
+    });
     renderTasks();
   }
 
@@ -568,7 +573,7 @@
     n = clamp(n, 1, 20);
     $("inCount").value = n;
     const cur = tasks.length;
-    if (n > cur) for (let i = cur; i < n; i++) tasks.push({ name: "", mins: 0 });
+    if (n > cur) for (let i = cur; i < n; i++) tasks.push({ name: "", mins: 0, secs: 0 });
     else if (n < cur) tasks = tasks.slice(0, n);
     distribute();
   }
@@ -581,15 +586,20 @@
       row.innerHTML =
         '<span class="idx">' + (i + 1) + '</span>' +
         '<input class="tname" type="text" placeholder="Thing ' + (i + 1) + '" />' +
-        '<span class="mins"><input type="number" min="0" inputmode="numeric" /><span class="suffix">min</span></span>' +
+        '<span class="mins"><input class="min-in" type="number" min="0" inputmode="numeric" /><span class="suffix">min</span></span>' +
+        '<span class="mins"><input class="sec-in" type="number" min="0" max="59" inputmode="numeric" /><span class="suffix">sec</span></span>' +
         '<button class="row-del" title="Remove">×</button>';
       const nameI = row.querySelector(".tname");
-      const minI = row.querySelector(".mins input");
+      const minI = row.querySelector(".min-in");
+      const secI = row.querySelector(".sec-in");
       nameI.value = t.name;
       minI.value = t.mins;
+      secI.value = t.secs;
       nameI.addEventListener("input", () => { t.name = nameI.value; });
       minI.addEventListener("input", () => { t.mins = clamp(Math.round(+minI.value || 0), 0, 1440); refreshAlloc(); });
       minI.addEventListener("blur", () => { minI.value = t.mins; });
+      secI.addEventListener("input", () => { t.secs = clamp(Math.round(+secI.value || 0), 0, 59); refreshAlloc(); });
+      secI.addEventListener("blur", () => { secI.value = t.secs; });
       row.querySelector(".row-del").addEventListener("click", () => {
         if (tasks.length <= 1) return;
         tasks.splice(i, 1);
@@ -602,18 +612,18 @@
   }
 
   function refreshAlloc() {
-    $("alloc").innerHTML = "planned <b>" + sumMins() + "</b> min";
+    const tot = sumSecs();
+    $("alloc").innerHTML = "planned <b>" + Math.floor(tot / 60) + ":" + pad(tot % 60) + "</b>";
   }
 
   // events
   $("inCount").addEventListener("input", () => setCount(Math.round(+$("inCount").value || 1)));
-  $("inHours").addEventListener("input", distribute);
   $("inMins").addEventListener("input", distribute);
   $("addTask").addEventListener("click", () => setCount(tasks.length + 1));
   $("splitBtn").addEventListener("click", distribute);
   $("presets").addEventListener("click", (e) => {
     const b = e.target.closest(".preset"); if (!b) return;
-    $("inHours").value = b.dataset.h; $("inMins").value = b.dataset.m;
+    $("inMins").value = b.dataset.min;
     distribute();
   });
 
@@ -621,10 +631,9 @@
   (function restore() {
     const saved = LS.get("jt.config", null);
     if (saved && Array.isArray(saved.tasks) && saved.tasks.length) {
-      $("inHours").value = saved.h ?? 1;
-      $("inMins").value = saved.m ?? 0;
+      $("inMins").value = saved.mins ?? 60;
       $("inCount").value = saved.tasks.length;
-      tasks = saved.tasks.map((t) => ({ name: t.name || "", mins: clamp(+t.mins || 0, 0, 1440) }));
+      tasks = saved.tasks.map((t) => ({ name: t.name || "", mins: clamp(+t.mins || 0, 0, 1440), secs: clamp(+t.secs || 0, 0, 59) }));
       renderTasks();
     } else {
       setCount(3);
@@ -649,16 +658,16 @@
 
   function startRun() {
     const hint = $("hint");
-    const valid = tasks.filter((t) => t.mins > 0);
-    if (!valid.length) { hint.textContent = "Give at least one thing some minutes."; return; }
+    const valid = tasks.filter((t) => taskSecs(t) > 0);
+    if (!valid.length) { hint.textContent = "Give at least one thing some time."; return; }
     hint.textContent = "";
 
     // persist plan
-    LS.set("jt.config", { h: +$("inHours").value || 0, m: +$("inMins").value || 0, tasks });
+    LS.set("jt.config", { mins: poolMins(), tasks });
 
-    RUN.segs = tasks.filter((t) => t.mins > 0).map((t, i) => ({
+    RUN.segs = valid.map((t, i) => ({
       name: (t.name && t.name.trim()) || "Thing " + (i + 1),
-      durMs: t.mins * 60000,
+      durMs: taskSecs(t) * 1000,
     }));
     RUN.i = 0;
     RUN.remaining = RUN.segs[0].durMs;
@@ -758,7 +767,7 @@
       const el = document.createElement("div");
       el.className = "seg";
       el.innerHTML = '<div class="bar"><i></i></div><div class="lbl">' + escapeHtml(s.name) + '</div>';
-      el.title = s.name + " · " + humanMins(s.durMs);
+      el.title = s.name + " · " + fmt(s.durMs);
       el.addEventListener("click", () => jumpTo(i));
       strip.appendChild(el);
     });
