@@ -1,10 +1,12 @@
 {
   "id": "jarvis-timer",
   "name": "Jarvis Timer",
+  "description": "A drift-free focus timer that splits the time you have across the tasks you want to do, counting each segment down on a big dial with WebAudio chimes.",
   "category": "standalone",
   "status": { "prod": "live", "dev": "live" },
   "deploy": {
     "prod": { "url": "https://jarvis-timer.dabrewer.dev/" },
     "dev": { "url": "https://jarvis-timer.dabrewer.dev/dev/" }
-  }
+  },
+  "tech": ["Vanilla JS", "Web Audio API", "HTML/CSS"]
 }
